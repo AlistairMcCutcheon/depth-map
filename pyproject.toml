@@ -1,0 +1,22 @@
+[tool.poetry]
+name = "fit3144"
+version = "0.1.0"
+description = ""
+authors = ["Alistair McCutcheon <alistairdmccutcheon@gmail.com>"]
+
+[tool.poetry.dependencies]
+python = "3.10"
+torch = "1.13.1"
+torchvision = "0.14.1"
+torchaudio = "0.13.1"
+mmcv-full = "1.7.0"
+six = "^1.16.0"
+python-dateutil = "^2.8.2"
+tensorboard = "^2.12.2"
+
+[tool.poetry.dev-dependencies]
+black = "^23.3.0"
+
+[build-system]
+requires = ["poetry-core>=1.0.0"]
+build-backend = "poetry.core.masonry.api"
