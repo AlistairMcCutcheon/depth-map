@@ -57,16 +57,14 @@ def calc_horizon_pixel(pitch, fov_v, altitude_m) -> float:
     return (angle_to_horizon - lower_angle) / (upper_angle - lower_angle)
 
 
-def create_line_img(image_id: int, image_annotation: dict):
+# create new image with line where horizon should be
+def create_line_img(img: np.ndarray, image_annotation: dict):
     altitude_m = image_annotation["meta"]["height_above_takeoff(meter)"]
     pitch_deg = image_annotation["meta"]["gimbal_pitch(degrees)"]
     pitch_rad = (pitch_deg / 180) * math.pi
     _, _, fov_v = calc_fovs(image_annotation["width"], image_annotation["height"])
 
     horizon_pixel = calc_horizon_pixel(pitch_rad, fov_v, altitude_m)
-    img = cv2.imread(f"data/SeaDronesSee/Images/train/{image_id}.jpg").astype(
-        np.float32
-    )
 
     line_img = draw_horizon_line(img, horizon_pixel)
     line_img = draw_reference_lines(line_img)
@@ -80,8 +78,12 @@ def main():
     for annotation in data["images"]:
         if not annotation["source"]["drone"] == "mavic":
             continue
+
         image_id = annotation["id"]
-        line_img = create_line_img(image_id, annotation)
+        img = cv2.imread(f"data/SeaDronesSee/Images/train/{image_id}.jpg").astype(
+            np.float32
+        )
+        line_img = create_line_img(img, annotation)
         cv2.imwrite(f"line_imgs/{image_id}.png", line_img)
 
 
