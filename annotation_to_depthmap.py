@@ -46,10 +46,15 @@ def calc_fovs(img_width: int, img_height: int) -> tuple[float, float, float]:
     return fov_diag, fov_h, fov_v
 
 
-# returns the number of pixels from the top where the horizon should be
-def calc_horizon_pixel(pitch, fov_v, altitude_m) -> float:
+def calc_upper_lower_angles(pitch, fov_v):
     upper_angle = pitch - fov_v / 2
     lower_angle = pitch + fov_v / 2
+    return upper_angle, lower_angle
+
+
+# returns the number of pixels from the top where the horizon should be
+def calc_horizon_pixel(pitch, fov_v, altitude_m) -> float:
+    upper_angle, lower_angle = calc_upper_lower_angles(pitch, fov_v)
 
     angle_to_horizon = math.pi / 2 - math.asin(
         EARTH_RADIUS / (EARTH_RADIUS + altitude_m)
@@ -71,6 +76,31 @@ def create_line_img(img: np.ndarray, image_annotation: dict):
     return line_img
 
 
+# calc distance to pixel, where pixel is the y value of the pixel in the image
+def calc_distance_to_pixel(pitch, fov_v, altitude_m, pixel, img_height):
+    upper_angle, lower_angle = calc_upper_lower_angles(pitch, fov_v)
+
+    angle = lower_angle + ((upper_angle - lower_angle) / img_height) * pixel
+    distance = altitude_m * math.tan(math.pi / 2 - angle)
+    return distance
+
+
+# create greyscale image where the pixel values are the normalised distances to each pixel in the original img
+def create_dist_image(img: np.ndarray, image_annotation: dict):
+    height, width = img.shape[:2]
+    distances = np.zeros((height, 1))
+
+    altitude_m = image_annotation["meta"]["height_above_takeoff(meter)"]
+    pitch_deg = image_annotation["meta"]["gimbal_pitch(degrees)"]
+    pitch_rad = (pitch_deg / 180) * math.pi
+    _, _, fov_v = calc_fovs(image_annotation["width"], image_annotation["height"])
+    for i in range(height):
+        distances[i] = calc_distance_to_pixel(pitch_rad, fov_v, altitude_m, i, height)
+    dist_img = np.tile(np.flip(distances, axis=0), (1, width))
+    dist_img_normalised = dist_img / np.max(dist_img) * 255
+    return dist_img_normalised
+
+
 def main():
     with open("data/SeaDronesSee/Annotations/instances_train.json") as file:
         data = json.load(file)
@@ -86,67 +116,9 @@ def main():
         line_img = create_line_img(img, annotation)
         cv2.imwrite(f"line_imgs/{image_id}.png", line_img)
 
+        dist_img = create_dist_image(img, annotation)
+        cv2.imwrite(f"dist_imgs/{image_id}.png", dist_img)
+
 
 if __name__ == "__main__":
     main()
-
-
-# # image_id = 3453
-# image_id = 7386
-# # image_id = 7416
-# # image_id = 8258
-# image_id = 8348
-
-# if annotation["id"] == image_id:
-#     image_annotation = annotation
-#     break
-
-# print(image_annotation)
-
-
-# EARTH_RADIUS = 6378137
-
-
-# img = cv2.imread(
-#     "/home/alistair/Downloads/Compressed Version/images/train/10736.jpg"
-# ).astype(np.float32)
-
-
-# distances = np.zeros((img_height, 1))
-# for i in range(img_height):
-#     angle = lower_angle + ((upper_angle - lower_angle) / img_height) * i
-#     distance = altitude_m * math.tan(math.pi / 2 - angle)
-#     distances[i] = distance
-
-# print("Distances:")
-# for i, x in enumerate(distances):
-#     if i % 10 == 0:
-#         print(x)
-# print(distances)
-
-# dist_img = np.tile(np.flip(distances, axis=0), (1, img_width))
-# dist_img_normalised = dist_img / np.max(dist_img) * 255
-# cv2.imwrite("dist_img.png", dist_img_normalised)
-
-# weighted_img = img * np.expand_dims(dist_img_normalised / 255, 2)
-# cv2.imwrite("dist_img_multiplied.png", weighted_img)
-
-# diff_differences = np.zeros((img_height, 1))
-# for i in range(img_height):
-#     angle = lower_angle + ((upper_angle - lower_angle) / img_height) * i
-#     distance = altitude_m * math.tan(math.pi / 2 - angle)
-#     angle_next = lower_angle + ((upper_angle - lower_angle) / img_height) * (i + 1)
-#     distance_next = altitude_m * math.tan(math.pi / 2 - angle_next)
-#     diff_differences[i] = distance / distance_next
-# diff_differences_img = np.tile(np.flip(diff_differences, axis=0), (1, img_width))
-# diff_differences_img_normalised = (
-#     diff_differences_img - np.min(diff_differences_img)
-# ) / (np.max(diff_differences_img) - np.min(diff_differences_img))
-
-
-# cv2.imwrite("diff_dist_img_normalised.png", diff_differences_img_normalised * 255)
-# img = cv2.imread(
-#     "/home/alistair/Downloads/Compressed Version/images/train/10736.jpg"
-# ).astype(np.float32)
-# img = img * np.expand_dims(diff_differences_img, 2)
-# cv2.imwrite("diff_dist_img_multiplied.png", img)
