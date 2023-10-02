@@ -2,7 +2,6 @@ import json
 import numpy as np
 import math
 import cv2
-import tifffile
 
 EARTH_RADIUS = 6371000
 NUM_REFERENCE_LINES = 9
@@ -102,7 +101,7 @@ def create_dist_image(img: np.ndarray, image_annotation: dict):
 
 
 def main():
-    with open("data/SeaDronesSee/Annotations/instances_train.json") as file:
+    with open("data/SeaDronesSee/Annotations/instances_val.json") as file:
         data = json.load(file)
 
     for annotation in data["images"]:
@@ -110,7 +109,7 @@ def main():
             continue
 
         image_id = annotation["id"]
-        img = cv2.imread(f"data/SeaDronesSee/Images/train/{image_id}.jpg").astype(
+        img = cv2.imread(f"data/SeaDronesSee/Images/val/{image_id}.jpg").astype(
             np.float32
         )
         line_img = create_line_img(img, annotation)

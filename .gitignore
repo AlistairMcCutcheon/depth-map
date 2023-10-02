@@ -1,3 +1,4 @@
-data/
+*.jpg
+*.png
 work_dir/
 .venv/
