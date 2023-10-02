@@ -5,6 +5,7 @@ import cv2
 import tifffile
 
 EARTH_RADIUS = 6371000
+NUM_REFERENCE_LINES = 9
 
 
 def draw_horizon_line(img, horizon_pixel):
@@ -18,13 +19,13 @@ def draw_horizon_line(img, horizon_pixel):
     )
 
 
-def draw_visualisation_lines(img):
+def draw_reference_lines(img):
     height, width = img.shape[:2]
-    for i in range(1, 10):
+    for i in range(1, (NUM_REFERENCE_LINES + 1)):
         img = cv2.line(
             img,
-            (0, int(i / 10 * height)),
-            (width, int(i / 10 * height)),
+            (0, int(i / (NUM_REFERENCE_LINES + 1) * height)),
+            (width, int(i / (NUM_REFERENCE_LINES + 1) * height)),
             color=(0, 0, 0),
             thickness=10,
         )
@@ -86,7 +87,7 @@ def create_line_img(image_annotation: dict):
     cv2.imwrite("img.png", img)
 
     line_img = draw_horizon_line(img, horizon_pixel)
-    line_img = draw_visualisation_lines(line_img)
+    line_img = draw_reference_lines(line_img)
     cv2.imwrite(f"line_imgs/{image_id}_{pitch_deg}.png", line_img)
 
 
