@@ -8,7 +8,9 @@ EARTH_RADIUS = 6371000
 NUM_REFERENCE_LINES = 9
 
 
-def draw_horizon_line(img, horizon_pixel):
+# Draw horizontal line where horizon should be.
+# horizon_pixel is the number of pixels from the top where the horizon should be
+def draw_horizon_line(img: np.ndarray, horizon_pixel: int):
     height, width = img.shape[:2]
     return cv2.line(
         img,
@@ -19,6 +21,7 @@ def draw_horizon_line(img, horizon_pixel):
     )
 
 
+# Draw reference lines across the image to aid visualisation
 def draw_reference_lines(img):
     height, width = img.shape[:2]
     for i in range(1, (NUM_REFERENCE_LINES + 1)):
@@ -37,58 +40,54 @@ def create_line_img(image_annotation: dict):
     img_height = image_annotation["height"]
     img_width = image_annotation["width"]
 
-    print()
-    print(f"Image Id: {image_id}")
-    print(f"Image Width: {img_width}")
-    print(f"Image Height: {img_height}")
-
     fov_diag = 77 * math.pi / 180
-    focal_length_pixels = (math.sqrt(3840**2 + 2160**2) / 2) / math.tan(
+    focal_length_pixels = (math.sqrt(img_width**2 + img_height**2) / 2) / math.tan(
         fov_diag / 2
     )
     fov_v = 2 * math.atan(2160 / 2 / focal_length_pixels)
     fov_h = 2 * math.atan(3840 / 2 / focal_length_pixels)
-    print(f"FOV Diagonal: {fov_diag}")
-    print(f"FOV Horizontal: {fov_h}")
-    print(f"FOV Vertical: {fov_v}")
 
     altitude_m = image_annotation["meta"]["height_above_takeoff(meter)"]
-    print("Altitude:", altitude_m)
 
     pitch_deg = image_annotation["meta"]["gimbal_pitch(degrees)"]
     pitch_rad = (pitch_deg / 180) * math.pi
 
-    print("Pitch (deg):", pitch_deg)
-    print("Pitch (rad):", pitch_rad)
-
     upper_angle = pitch_rad - fov_v / 2
     lower_angle = pitch_rad + fov_v / 2
 
-    print("Lower angle (deg):", lower_angle * 180 / math.pi)
-    print("Upper angle (deg):", upper_angle * 180 / math.pi)
-    print("Lower angle (rad):", lower_angle)
-    print("Upper angle (rad):", upper_angle)
-
     dist_to_horizon = math.sqrt(2 * EARTH_RADIUS * altitude_m + altitude_m**2)
-    print("Dist to horison:", dist_to_horizon)
+
     angle_to_horizon = math.pi / 2 - math.asin(
         EARTH_RADIUS / (EARTH_RADIUS + altitude_m)
     )
 
-    print("Angle to horizon (rad):", angle_to_horizon)
-    print("Angle to horizon (deg):", angle_to_horizon * 180 / math.pi)
-
     horizon_pixel = (angle_to_horizon - lower_angle) / (upper_angle - lower_angle)
-    print(horizon_pixel)
 
     img = cv2.imread(f"data/SeaDronesSee/Images/train/{image_id}.jpg").astype(
         np.float32
     )
-    cv2.imwrite("img.png", img)
 
     line_img = draw_horizon_line(img, horizon_pixel)
     line_img = draw_reference_lines(line_img)
     cv2.imwrite(f"line_imgs/{image_id}_{pitch_deg}.png", line_img)
+
+    print()
+    print(f"Image Id: {image_id}")
+    print(f"Image Width: {img_width}")
+    print(f"Image Height: {img_height}")
+    print(f"FOV Diagonal: {fov_diag}")
+    print(f"FOV Horizontal: {fov_h}")
+    print(f"FOV Vertical: {fov_v}")
+    print("Altitude:", altitude_m)
+    print("Pitch (deg):", pitch_deg)
+    print("Pitch (rad):", pitch_rad)
+    print("Lower angle (deg):", lower_angle * 180 / math.pi)
+    print("Upper angle (deg):", upper_angle * 180 / math.pi)
+    print("Lower angle (rad):", lower_angle)
+    print("Upper angle (rad):", upper_angle)
+    print("Dist to horison:", dist_to_horizon)
+    print("Angle to horizon (rad):", angle_to_horizon)
+    print("Angle to horizon (deg):", angle_to_horizon * 180 / math.pi)
 
 
 def main():
